@@ -1,0 +1,3 @@
+[submodule "graphql_parser"]
+	path = graphql_parser
+	url = https://github.com/thetarnav/odin-graphql-parser
