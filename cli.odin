@@ -188,22 +188,13 @@ main :: proc() {
 					strings.write_string(&b, ")+'")
 				}
 				if i < len(query.args)-1 {
-					strings.write_string(&b, ",")
+					strings.write_string(&b, " ")
 				}
 			}
 			strings.write_string(&b, ")")
 		}
 
-		if (return_type.kind == .Object) {
-			strings.write_string(&b, "{")
-			for field, i in return_type.fields {
-				strings.write_string(&b, field.name)
-				if i < len(return_type.fields)-1 {
-					strings.write_string(&b, ",")
-				}
-			}
-			strings.write_string(&b, "}")
-		}
+		write_type_value(&b, schema, query.value)
 
 		strings.write_string(&b, "}'\n}\n")
 
@@ -217,4 +208,19 @@ main :: proc() {
 
 	str := strings.to_string(b)
 	os.write(os.stdout, transmute([]byte)str)
+}
+
+write_type_value :: proc(b: ^strings.Builder, schema: gql.Schema, value: gql.Type_Value) {
+	type := schema.types[value.index]
+	if (type.kind != .Object) do return
+
+	strings.write_string(b, "{")
+	for field, i in type.fields {
+		strings.write_string(b, field.name)
+		write_type_value(b, schema, field.value)
+		if i < len(type.fields)-1 {
+			strings.write_string(b, " ")
+		}
+	}
+	strings.write_string(b, "}")
 }
