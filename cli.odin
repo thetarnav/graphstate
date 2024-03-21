@@ -83,7 +83,7 @@ main :: proc() {
 			strings.write_string(&b, type.name)
 			strings.write_string(&b, "\n")
 			for field in type.fields {
-				field_type := schema.types[field.type.index]
+				field_type := schema.types[field.value.index]
 				strings.write_string(&b, " * @property {")
 				strings.write_string(&b, field_type.name)
 				strings.write_string(&b, "} ")
@@ -143,7 +143,7 @@ main :: proc() {
 			strings.write_string(&b, "\n")
 		}
 
-		return_type := schema.types[query.type.index]
+		return_type := schema.types[query.value.index]
 
 		strings.write_string(&b, " * @returns {")
 		strings.write_string(&b, return_type.name)
