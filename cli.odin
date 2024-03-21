@@ -130,9 +130,13 @@ main :: proc() {
 	*/
 	queries_type := schema.types[schema.query]
 	for query in queries_type.fields {
-		strings.write_string(&b, "\n/**\n * query ")
+		return_type := schema.types[query.value.index]
+
+		strings.write_string(&b, "\n/**\n * Query: `")
 		strings.write_string(&b, query.name)
-		strings.write_string(&b, "\n")
+		strings.write_string(&b, "`. Returns: {@link ")
+		strings.write_string(&b, return_type.name)
+		strings.write_string(&b, "}.\n")
 
 		for arg in query.args {
 			arg_type := schema.types[arg.type.index] // TODO null lists
@@ -143,12 +147,8 @@ main :: proc() {
 			strings.write_string(&b, "\n")
 		}
 
-		return_type := schema.types[query.value.index]
-
-		strings.write_string(&b, " * @returns {")
-		strings.write_string(&b, return_type.name)
-		strings.write_string(&b, "} */\n")
-		strings.write_string(&b, "function ")
+		strings.write_string(&b, " * @returns {string} */\n")
+		strings.write_string(&b, "export function query_body_")
 		strings.write_string(&b, query.name)
 		strings.write_string(&b, "(")
 
@@ -206,6 +206,13 @@ main :: proc() {
 		}
 
 		strings.write_string(&b, "}'\n}\n")
+
+		// Return type alias
+		strings.write_string(&b, "/** @typedef {")
+		strings.write_string(&b, return_type.name)
+		strings.write_string(&b, "} Value_")
+		strings.write_string(&b, query.name)
+		strings.write_string(&b, " */\n")
 	}
 
 	str := strings.to_string(b)
