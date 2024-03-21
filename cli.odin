@@ -210,17 +210,18 @@ main :: proc() {
 	os.write(os.stdout, transmute([]byte)str)
 }
 
-write_type_value :: proc(b: ^strings.Builder, schema: gql.Schema, value: gql.Type_Value) {
+write_type_value :: proc(b: ^strings.Builder, schema: gql.Schema, value: gql.Type_Value) -> (is_obj: bool) {
 	type := schema.types[value.index]
-	if (type.kind != .Object) do return
+	if (type.kind != .Object) do return false
 
 	strings.write_string(b, "{")
 	for field, i in type.fields {
 		strings.write_string(b, field.name)
-		write_type_value(b, schema, field.value)
-		if i < len(type.fields)-1 {
+		if !write_type_value(b, schema, field.value) && i < len(type.fields)-1 {
 			strings.write_string(b, " ")
 		}
 	}
 	strings.write_string(b, "}")
+
+	return true
 }
