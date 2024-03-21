@@ -1,2 +1,6 @@
+# Ignore all extensionless files
+*
+!*.*
+!*/
+
 node_modules
-graphstate
