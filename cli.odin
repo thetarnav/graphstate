@@ -3,7 +3,7 @@ package graphstate
 import "core:os"
 import "core:fmt"
 import "core:mem"
-
+import "core:strings"
 import gql "./graphql_parser"
 
 when ODIN_OS == .Windows {
@@ -23,10 +23,7 @@ when ODIN_OS == .Windows {
 	}
 }
 
-Error :: union {
-	os.Errno,
-	gql.Schema_Error,
-}
+runtime := #load("./runtime.js")
 
 main :: proc() {
 	if is_terminal(os.stdin) {
@@ -52,7 +49,7 @@ main :: proc() {
 	context.allocator = mem.arena_allocator(&arena)
 
 	schema: gql.Schema
-	alloc_err = gql.schema_init(&schema, context.allocator)
+	alloc_err = gql.schema_init(&schema)
 	if alloc_err != nil {
 		fmt.panicf("error initializing schema: %v", alloc_err)
 	}
@@ -62,11 +59,155 @@ main :: proc() {
 		fmt.panicf("Error parsing schema: %v", schema_err)
 	}
 
-	if schema.query == 0 || schema.query >= len(schema.types) {
+	if schema.query == 0 {
 		panic("Query type not found")
 	}
 
-	for type in schema.types[gql.USER_TYPES_START:] {
-		fmt.printfln("Type: %s", type.name)
+	os.write(os.stdout, runtime)
+
+	b := strings.builder_make_len_cap(0, 2048)
+
+	/*
+	Types typedef jsdoc
+	*/
+	for type, _i in schema.types[gql.USER_TYPES_START:] {
+		i := _i + gql.USER_TYPES_START
+
+		if i == schema.query || i == schema.mutation || i == schema.subscription {
+			continue
+		}
+
+		switch type.kind {
+		case .Object, .Interface, .Input_Object:
+			strings.write_string(&b, "\n/**\n * @typedef  {object} ")
+			strings.write_string(&b, type.name)
+			strings.write_string(&b, "\n")
+			for field in type.fields {
+				field_type := schema.types[field.type.index]
+				strings.write_string(&b, " * @property {")
+				strings.write_string(&b, field_type.name)
+				strings.write_string(&b, "} ")
+				strings.write_string(&b, field.name)
+				strings.write_string(&b, "\n")
+			}
+			strings.write_string(&b, " */\n")
+		case .Union:
+			strings.write_string(&b, "\n/**\n * @typedef  {")
+			for member, i in type.members {
+				member_type := schema.types[member]
+				strings.write_string(&b, member_type.name)
+				if i < len(type.members)-1 {
+					strings.write_string(&b, "|")
+				}
+			}
+			strings.write_string(&b, "} ")
+			strings.write_string(&b, type.name)
+		case .Enum:
+			strings.write_string(&b, "\n/**\n * @enum {(typeof ")
+			strings.write_string(&b, type.name)
+			strings.write_string(&b, ")[keyof typeof ")
+			strings.write_string(&b, type.name)
+			strings.write_string(&b, "]} */\n")
+			strings.write_string(&b, "export const ")
+			strings.write_string(&b, type.name)
+			strings.write_string(&b, " = /** @type {const} */({\n")
+			for item, i in type.enum_values {
+				strings.write_string(&b, "\t")
+				strings.write_string(&b, item)
+				strings.write_string(&b, ": \"")
+				strings.write_string(&b, item)
+				strings.write_string(&b, "\"")
+				strings.write_string(&b, ",\n")
+			}
+			strings.write_string(&b, "})\n")
+		case .Scalar, .Unknown:
+			panic("Unknown type kind")
+		}
 	}
+
+	/*
+	Queries
+	*/
+	queries_type := schema.types[schema.query]
+	for query in queries_type.fields {
+		strings.write_string(&b, "\n/**\n * query ")
+		strings.write_string(&b, query.name)
+		strings.write_string(&b, "\n")
+
+		for arg in query.args {
+			arg_type := schema.types[arg.type.index] // TODO null lists
+			strings.write_string(&b, " * @param   {")
+			strings.write_string(&b, arg_type.name)
+			strings.write_string(&b, "} ")
+			strings.write_string(&b, arg.name)
+			strings.write_string(&b, "\n")
+		}
+
+		return_type := schema.types[query.type.index]
+
+		strings.write_string(&b, " * @returns {")
+		strings.write_string(&b, return_type.name)
+		strings.write_string(&b, "} */\n")
+		strings.write_string(&b, "function ")
+		strings.write_string(&b, query.name)
+		strings.write_string(&b, "(")
+
+		for arg, i in query.args {
+			strings.write_string(&b, arg.name)
+			if i < len(query.args)-1 {
+				strings.write_string(&b, ", ")
+			}
+		}
+
+		strings.write_string(&b, ") {\n")
+		strings.write_string(&b, "\treturn 'query{")
+		strings.write_string(&b, query.name)
+		
+		if len(query.args) > 0 {
+			strings.write_string(&b, "(")
+			for arg, i in query.args {
+				arg_type := schema.types[arg.type.index]
+				strings.write_string(&b, arg.name)
+				strings.write_string(&b, ":")
+				switch arg_type.name {
+				case "String":
+					strings.write_string(&b, "\"'+escape_quotes(")
+					strings.write_string(&b, arg.name)
+					strings.write_string(&b, ")+'\"")
+				case "ID":
+					strings.write_string(&b, "\"'+")
+					strings.write_string(&b, arg.name)
+					strings.write_string(&b, "+'\"")
+				case "Int", "Float", "Boolean":
+					strings.write_string(&b, "'+")
+					strings.write_string(&b, arg.name)
+					strings.write_string(&b, "+'")
+				case:
+					strings.write_string(&b, "'+JSON.stringify(")
+					strings.write_string(&b, arg.name)
+					strings.write_string(&b, ")+'")
+				}
+				if i < len(query.args)-1 {
+					strings.write_string(&b, ",")
+				}
+			}
+			strings.write_string(&b, ")")
+		}
+
+		if (return_type.kind == .Object) {
+			strings.write_string(&b, "{")
+			for field, i in return_type.fields {
+				strings.write_string(&b, field.name)
+				if i < len(return_type.fields)-1 {
+					strings.write_string(&b, ",")
+				}
+			}
+			strings.write_string(&b, "}")
+		}
+
+		strings.write_string(&b, "}'\n}\n")
+	}
+
+	str := strings.to_string(b)
+	os.write(os.stdout, transmute([]byte)str)
 }
