@@ -1,0 +1,11 @@
+odin build . -out:graphstate \
+	-o:aggressive \
+	-microarch:native \
+	-no-thread-local \
+	-no-bounds-check \
+	-disable-assert \
+	-obfuscate-source-code-locations \
+	-vet-unused \
+	-vet-shadowing \
+	-vet-style \
+	-vet-semicolon
