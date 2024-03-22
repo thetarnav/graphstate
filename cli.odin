@@ -17,7 +17,7 @@ when ODIN_OS == .Windows {
 		@(link_name = "isatty")
 		_isatty :: proc(fd: os.Handle) -> b32 ---
 	}
-	
+
 	is_terminal :: proc(fd: os.Handle) -> bool {
 		return bool(_isatty(fd))
 	}
@@ -29,7 +29,7 @@ main :: proc() {
 	if is_terminal(os.stdin) {
 		fmt.println("\e[0;36mEnter a GraphQL query or schema:\e[0m")
 	}
-	
+
 	buf, alloc_err := make([]byte, mem.Megabyte * 10)
 	if alloc_err != nil {
 		fmt.panicf("error allocating memory: %v", alloc_err)
@@ -190,7 +190,7 @@ write_field_function :: proc(b: ^strings.Builder, schema: gql.Schema, field: gql
 	strings.write_string(b, operation_type)
 	strings.write_string(b, "{")
 	strings.write_string(b, field.name)
-	
+
 	if len(field.args) > 0 {
 		strings.write_string(b, "(")
 		for arg, i in field.args {
@@ -246,7 +246,7 @@ String!    -> String
 */
 write_type_value :: proc(b: ^strings.Builder, schema: gql.Schema, value: gql.Type_Value) {
 	type := schema.types[value.index]
-	
+
 	to_close := 0
 	for i in 0..<value.lists {
 		if value.non_null_flags & (1 << i) != 0 {
