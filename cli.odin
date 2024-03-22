@@ -165,7 +165,7 @@ write_field_function :: proc(b: ^strings.Builder, schema: gql.Schema, field: gql
 
 	for arg in field.args {
 		strings.write_string(b, " * @param   {")
-		write_type_value(b, schema, arg.type)
+		write_type_value(b, schema, arg.value)
 		strings.write_string(b, "} ")
 		strings.write_string(b, arg.name)
 		strings.write_string(b, "\n")
@@ -236,13 +236,11 @@ write_type_fields :: proc(b: ^strings.Builder, schema: gql.Schema, value: gql.Ty
 /*
 String     -> Maybe<String>
 String!    -> String
-[String]   -> Maybe<Array<Maybe<String>>>  Maybe<Maybe<String>[]>
-[String!]  -> Maybe<Array<String>>         Maybe<String[]>
-[String!]! -> Array<String>                String[]
-[String]!  -> Array<Maybe<String>>         Maybe<String>[]
-
+[String]   -> Maybe<Array<Maybe<String>>>
+[String!]  -> Maybe<Array<String>>
+[String!]! -> Array<String>
+[String]!  -> Array<Maybe<String>>
 [[String]] -> Maybe<Array<Maybe<Array<Maybe<String>>>>>
-              Maybe<Maybe<Maybe<String>[]>[]>
 */
 write_type_value :: proc(b: ^strings.Builder, schema: gql.Schema, value: gql.Type_Value) {
 	type := schema.types[value.index]
