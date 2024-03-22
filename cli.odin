@@ -59,10 +59,6 @@ main :: proc() {
 		fmt.panicf("Error parsing schema: %v", schema_err)
 	}
 
-	if schema.query == 0 {
-		panic("Query type not found")
-	}
-
 	os.write(os.stdout, runtime)
 
 	b := strings.builder_make_len_cap(0, 2048)
@@ -128,96 +124,128 @@ main :: proc() {
 	/*
 	Queries
 	*/
+	if schema.query == 0 {
+		panic("Query type not found")
+	}
+
+	strings.write_string(&b, "\n/*\n\n")
+	strings.write_string(&b, "QUERIES:\n\n")
+	strings.write_string(&b, "*/\n")
+
 	queries_type := schema.types[schema.query]
 	for query in queries_type.fields {
-		return_type := schema.types[query.value.index]
+		write_field_function(&b, schema, query, "query")
+	}
 
-		strings.write_string(&b, "\n/**\n * Query: `")
-		strings.write_string(&b, query.name)
-		strings.write_string(&b, "`. Returns: {@link ")
-		strings.write_string(&b, return_type.name)
-		strings.write_string(&b, "}.\n")
+	/*
+	Mutations
+	*/
+	if schema.mutation != 0 {
+		strings.write_string(&b, "\n/*\n\n")
+		strings.write_string(&b, "MUTATIONS:\n\n")
+		strings.write_string(&b, "*/\n")
 
-		for arg in query.args {
-			arg_type := schema.types[arg.type.index] // TODO null lists
-			strings.write_string(&b, " * @param   {")
-			strings.write_string(&b, arg_type.name)
-			strings.write_string(&b, "} ")
-			strings.write_string(&b, arg.name)
-			strings.write_string(&b, "\n")
+		mutations_type := schema.types[schema.mutation]
+		for mutation in mutations_type.fields {
+			write_field_function(&b, schema, mutation, "mutation")
 		}
-
-		strings.write_string(&b, " * @returns {string} */\n")
-		strings.write_string(&b, "export function query_body_")
-		strings.write_string(&b, query.name)
-		strings.write_string(&b, "(")
-
-		for arg, i in query.args {
-			strings.write_string(&b, arg.name)
-			if i < len(query.args)-1 {
-				strings.write_string(&b, ", ")
-			}
-		}
-
-		strings.write_string(&b, ") {\n")
-		strings.write_string(&b, "\treturn 'query{")
-		strings.write_string(&b, query.name)
-		
-		if len(query.args) > 0 {
-			strings.write_string(&b, "(")
-			for arg, i in query.args {
-				arg_type := schema.types[arg.type.index]
-				strings.write_string(&b, arg.name)
-				strings.write_string(&b, ":")
-				switch arg_type.name {
-				case "String":
-					strings.write_string(&b, "\"'+escape_quotes(")
-					strings.write_string(&b, arg.name)
-					strings.write_string(&b, ")+'\"")
-				case "ID":
-					strings.write_string(&b, "\"'+")
-					strings.write_string(&b, arg.name)
-					strings.write_string(&b, "+'\"")
-				case "Int", "Float", "Boolean":
-					strings.write_string(&b, "'+")
-					strings.write_string(&b, arg.name)
-					strings.write_string(&b, "+'")
-				case:
-					strings.write_string(&b, "'+JSON.stringify(")
-					strings.write_string(&b, arg.name)
-					strings.write_string(&b, ")+'")
-				}
-				if i < len(query.args)-1 {
-					strings.write_string(&b, " ")
-				}
-			}
-			strings.write_string(&b, ")")
-		}
-
-		write_type_value(&b, schema, query.value)
-
-		strings.write_string(&b, "}'\n}\n")
-
-		// Return type alias
-		strings.write_string(&b, "/** @typedef {")
-		strings.write_string(&b, return_type.name)
-		strings.write_string(&b, "} Value_")
-		strings.write_string(&b, query.name)
-		strings.write_string(&b, " */\n")
 	}
 
 	str := strings.to_string(b)
 	os.write(os.stdout, transmute([]byte)str)
 }
 
-write_type_value :: proc(b: ^strings.Builder, schema: gql.Schema, value: gql.Type_Value) -> (is_obj: bool) {
+write_field_function :: proc(b: ^strings.Builder, schema: gql.Schema, field: gql.Field, operation_type: string) {
+	return_type := schema.types[field.value.index]
+
+	strings.write_string(b, "\n/**\n * ")
+	strings.write_string(b, operation_type)
+	strings.write_string(b, ": `")
+	strings.write_string(b, field.name)
+	strings.write_string(b, "`.\n * value: {@link ")
+	strings.write_string(b, return_type.name)
+	strings.write_string(b, "}.\n")
+
+	for arg in field.args {
+		arg_type := schema.types[arg.type.index] // TODO null lists
+		strings.write_string(b, " * @param   {")
+		strings.write_string(b, arg_type.name)
+		strings.write_string(b, "} ")
+		strings.write_string(b, arg.name)
+		strings.write_string(b, "\n")
+	}
+
+	strings.write_string(b, " * @returns {string} */\n")
+	strings.write_string(b, "export function ")
+	strings.write_string(b, operation_type)
+	strings.write_string(b, "_body_")
+	strings.write_string(b, field.name)
+	strings.write_string(b, "(")
+
+	for arg, i in field.args {
+		strings.write_string(b, arg.name)
+		if i < len(field.args)-1 {
+			strings.write_string(b, ", ")
+		}
+	}
+
+	strings.write_string(b, ") {\n")
+	strings.write_string(b, "\treturn '")
+	strings.write_string(b, operation_type)
+	strings.write_string(b, "{")
+	strings.write_string(b, field.name)
+	
+	if len(field.args) > 0 {
+		strings.write_string(b, "(")
+		for arg, i in field.args {
+			arg_type := schema.types[arg.type.index]
+			strings.write_string(b, arg.name)
+			strings.write_string(b, ":")
+			switch arg_type.name {
+			case "String":
+				strings.write_string(b, "\"'+escape_quotes(")
+				strings.write_string(b, arg.name)
+				strings.write_string(b, ")+'\"")
+			case "ID":
+				strings.write_string(b, "\"'+")
+				strings.write_string(b, arg.name)
+				strings.write_string(b, "+'\"")
+			case "Int", "Float", "Boolean":
+				strings.write_string(b, "'+")
+				strings.write_string(b, arg.name)
+				strings.write_string(b, "+'")
+			case:
+				strings.write_string(b, "'+JSON.stringify(")
+				strings.write_string(b, arg.name)
+				strings.write_string(b, ")+'")
+			}
+			if i < len(field.args)-1 {
+				strings.write_string(b, " ")
+			}
+		}
+		strings.write_string(b, ")")
+	}
+
+	write_type_fields(b, schema, field.value)
+
+	strings.write_string(b, "}'\n}\n")
+
+	// Return type alias
+	strings.write_string(b, "/** @typedef {")
+	strings.write_string(b, return_type.name)
+	strings.write_string(b, "} Value_")
+	strings.write_string(b, field.name)
+	strings.write_string(b, " */\n")
+}
+
+write_type_fields :: proc(b: ^strings.Builder, schema: gql.Schema, value: gql.Type_Value) -> (is_obj: bool) {
 	type := schema.types[value.index]
 	if (type.kind != .Object) do return false
 
 	strings.write_string(b, "{")
 	for field, i in type.fields {
 		strings.write_string(b, field.name)
-		if !write_type_value(b, schema, field.value) && i < len(type.fields)-1 {
+		if !write_type_fields(b, schema, field.value) && i < len(type.fields)-1 {
 			strings.write_string(b, " ")
 		}
 	}
