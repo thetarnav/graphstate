@@ -79,9 +79,8 @@ main :: proc() {
 			strings.write_string(&b, type.name)
 			strings.write_string(&b, "\n")
 			for field in type.fields {
-				field_type := schema.types[field.value.index]
 				strings.write_string(&b, " * @property {")
-				strings.write_string(&b, field_type.name)
+				write_type_value(&b, schema, field.value)
 				strings.write_string(&b, "} ")
 				strings.write_string(&b, field.name)
 				strings.write_string(&b, "\n")
@@ -156,20 +155,17 @@ main :: proc() {
 }
 
 write_field_function :: proc(b: ^strings.Builder, schema: gql.Schema, field: gql.Field, operation_type: string) {
-	return_type := schema.types[field.value.index]
-
 	strings.write_string(b, "\n/**\n * ")
 	strings.write_string(b, operation_type)
 	strings.write_string(b, ": `")
 	strings.write_string(b, field.name)
-	strings.write_string(b, "`.\n * value: {@link ")
-	strings.write_string(b, return_type.name)
+	strings.write_string(b, "`.\n * value: {@link Value_")
+	strings.write_string(b, field.name)
 	strings.write_string(b, "}.\n")
 
 	for arg in field.args {
-		arg_type := schema.types[arg.type.index] // TODO null lists
 		strings.write_string(b, " * @param   {")
-		strings.write_string(b, arg_type.name)
+		write_type_value(b, schema, arg.type)
 		strings.write_string(b, "} ")
 		strings.write_string(b, arg.name)
 		strings.write_string(b, "\n")
@@ -198,27 +194,10 @@ write_field_function :: proc(b: ^strings.Builder, schema: gql.Schema, field: gql
 	if len(field.args) > 0 {
 		strings.write_string(b, "(")
 		for arg, i in field.args {
-			arg_type := schema.types[arg.type.index]
 			strings.write_string(b, arg.name)
-			strings.write_string(b, ":")
-			switch arg_type.name {
-			case "String":
-				strings.write_string(b, "\"'+escape_quotes(")
-				strings.write_string(b, arg.name)
-				strings.write_string(b, ")+'\"")
-			case "ID":
-				strings.write_string(b, "\"'+")
-				strings.write_string(b, arg.name)
-				strings.write_string(b, "+'\"")
-			case "Int", "Float", "Boolean":
-				strings.write_string(b, "'+")
-				strings.write_string(b, arg.name)
-				strings.write_string(b, "+'")
-			case:
-				strings.write_string(b, "'+JSON.stringify(")
-				strings.write_string(b, arg.name)
-				strings.write_string(b, ")+'")
-			}
+			strings.write_string(b, ":'+JSON.stringify(")
+			strings.write_string(b, arg.name)
+			strings.write_string(b, ")+'")
 			if i < len(field.args)-1 {
 				strings.write_string(b, " ")
 			}
@@ -232,7 +211,7 @@ write_field_function :: proc(b: ^strings.Builder, schema: gql.Schema, field: gql
 
 	// Return type alias
 	strings.write_string(b, "/** @typedef {")
-	strings.write_string(b, return_type.name)
+	write_type_value(b, schema, field.value)
 	strings.write_string(b, "} Value_")
 	strings.write_string(b, field.name)
 	strings.write_string(b, " */\n")
@@ -252,4 +231,42 @@ write_type_fields :: proc(b: ^strings.Builder, schema: gql.Schema, value: gql.Ty
 	strings.write_string(b, "}")
 
 	return true
+}
+
+/*
+String     -> Maybe<String>
+String!    -> String
+[String]   -> Maybe<Array<Maybe<String>>>  Maybe<Maybe<String>[]>
+[String!]  -> Maybe<Array<String>>         Maybe<String[]>
+[String!]! -> Array<String>                String[]
+[String]!  -> Array<Maybe<String>>         Maybe<String>[]
+
+[[String]] -> Maybe<Array<Maybe<Array<Maybe<String>>>>>
+              Maybe<Maybe<Maybe<String>[]>[]>
+*/
+write_type_value :: proc(b: ^strings.Builder, schema: gql.Schema, value: gql.Type_Value) {
+	type := schema.types[value.index]
+	
+	to_close := 0
+	for i in 0..<value.lists {
+		if value.non_null_flags & (1 << i) != 0 {
+			strings.write_string(b, "Array<")
+			to_close += 1
+		} else {
+			strings.write_string(b, "Maybe<Array<")
+			to_close += 2
+		}
+	}
+
+	if value.non_null_flags & 1 != 0 {
+		strings.write_string(b, type.name)
+	} else {
+		strings.write_string(b, "Maybe<")
+		strings.write_string(b, type.name)
+		strings.write_string(b, ">")
+	}
+
+	for _ in 0..<to_close {
+		strings.write_string(b, ">")
+	}
 }
