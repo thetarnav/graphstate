@@ -135,7 +135,7 @@ main :: proc() {
 
 	queries_type := schema.types[schema.query]
 	for query in queries_type.fields {
-		write_field_function(&b, schema, query, "query")
+		write_query_data(&b, schema, query, "query")
 	}
 
 	/*
@@ -148,7 +148,7 @@ main :: proc() {
 
 		mutations_type := schema.types[schema.mutation]
 		for mutation in mutations_type.fields {
-			write_field_function(&b, schema, mutation, "mutation")
+			write_query_data(&b, schema, mutation, "mutation")
 		}
 	}
 
@@ -156,39 +156,44 @@ main :: proc() {
 	os.write(os.stdout, transmute([]byte)str)
 }
 
-write_field_function :: proc(b: ^strings.Builder, schema: gql.Schema, field: gql.Field, operation_type: string) {
-	write_string(b, "\n/**\n * ")
-	write_string(b, operation_type)
-	write_string(b, ": `")
+write_query_data :: proc(b: ^strings.Builder, schema: gql.Schema, field: gql.Field, operation_type: string) {
+	write_string(b, "\n\n/**\n * @typedef  {object} Vars_")
 	write_string(b, field.name)
-	write_string(b, "`.\n * value: {@link Value_")
-	write_string(b, field.name)
-	write_string(b, "}.\n")
-
+	write_string(b, "\n")
 	for arg in field.args {
-		write_string(b, " * @param   {")
+		write_string(b, " * @property {")
 		write_type_value(b, schema, arg.value)
 		write_string(b, "} ")
 		write_string(b, arg.name)
 		write_string(b, "\n")
 	}
-
-	write_string(b, " * @returns {string} */\n")
-	write_string(b, "export function ")
-	write_string(b, operation_type)
-	write_string(b, "_body_")
+	write_string(b, " *\n * @typedef  {")
+	write_type_value(b, schema, field.value)
+	write_string(b, "} Value_")
 	write_string(b, field.name)
-	write_string(b, "(")
+	write_string(b, "\n */\n\n")
 
-	for arg, i in field.args {
-		write_string(b, arg.name)
-		if i < len(field.args)-1 {
-			write_string(b, ", ")
-		}
-	}
-
-	write_string(b, ") {\n")
-	write_string(b, "\treturn '")
+	write_string(b, "/**\n * ")
+	write_string(b, operation_type)
+	write_string(b, ": `")
+	write_string(b, field.name)
+	write_string(b, "`\\\n * vars : {@link Vars_")
+	write_string(b, field.name)
+	write_string(b, " }\\\n * value: {@link Value_")
+	write_string(b, field.name)
+	write_string(b, "}\n * @type {Query_Data<Vars_")
+	write_string(b, field.name)
+	write_string(b, ", Value_")
+	write_string(b, field.name)
+	write_string(b, ">}\n */\nexport const ")
+	write_string(b, operation_type)
+	write_string(b, "_")
+	write_string(b, field.name)
+	write_string(b, " = /** @type {*} */({\n")
+	write_string(b, "\tname : \"")
+	write_string(b, field.name)
+	write_string(b, "\",\n")
+	write_string(b, "\tquery: \"")
 	write_string(b, operation_type)
 	write_string(b, "{")
 	write_string(b, field.name)
@@ -197,9 +202,8 @@ write_field_function :: proc(b: ^strings.Builder, schema: gql.Schema, field: gql
 		write_string(b, "(")
 		for arg, i in field.args {
 			write_string(b, arg.name)
-			write_string(b, ":'+JSON.stringify(")
+			write_string(b, ":$")
 			write_string(b, arg.name)
-			write_string(b, ")+'")
 			if i < len(field.args)-1 {
 				write_string(b, " ")
 			}
@@ -209,16 +213,7 @@ write_field_function :: proc(b: ^strings.Builder, schema: gql.Schema, field: gql
 
 	write_type_fields(b, schema, field.value)
 
-	write_string(b, "}'\n}\n")
-
-	// Return type
-	write_string(b, "/** @typedef {{")
-	write_string(b, field.name)
-	write_string(b, ": ")
-	write_type_value(b, schema, field.value)
-	write_string(b, "}} Value_")
-	write_string(b, field.name)
-	write_string(b, " */\n")
+	write_string(b, "}\"\n})\n")
 }
 
 write_type_fields :: proc(b: ^strings.Builder, schema: gql.Schema, value: gql.Type_Value) -> (is_obj: bool) {
