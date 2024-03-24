@@ -22,6 +22,7 @@
  * @typedef  {object               } Query_Data
  * @property {string               } name
  * @property {Query_Get_Body<TVars>} get_body
+ * @property {TValue | undefined   } initial_value
  * @property {TVars                } _type_vars
  * @property {TValue               } _type_value
  */

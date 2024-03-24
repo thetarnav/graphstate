@@ -225,12 +225,19 @@ write_query_data :: proc(b: ^strings.Builder, schema: gql.Schema, field: gql.Fie
 		write_string(b, "_")
 		write_string(b, field.name)
 		write_string(b, " = /** @type {*} */({\n")
-		write_string(b, "\tname    : \"")
+		write_string(b, "\tname         : \"")
 		write_string(b, field.name)
 		write_string(b, "\",\n")
-		write_string(b, "\tget_body: query_get_body_")
+		write_string(b, "\tget_body     : query_get_body_")
 		write_string(b, field.name)
-		write_string(b, "\n})\n")
+		write_string(b, ",\n")
+		write_string(b, "\tinitial_value: ")
+		if field.value.lists > 0 {
+			write_string(b, "[]")
+		} else {
+			write_string(b, "undefined")
+		}
+		write_string(b, ",\n})\n")
 	}
 }
 
@@ -264,7 +271,7 @@ write_type_value :: proc(b: ^strings.Builder, schema: gql.Schema, value: gql.Typ
 
 	to_close := 0
 	for i in 0..<value.lists {
-		if value.non_null_flags & (1 << i) != 0 {
+		if gql.type_value_is_list_non_null(value, i) {
 			write_string(b, "Array<")
 			to_close += 1
 		} else {
@@ -273,7 +280,7 @@ write_type_value :: proc(b: ^strings.Builder, schema: gql.Schema, value: gql.Typ
 		}
 	}
 
-	if value.non_null_flags & 1 != 0 {
+	if gql.type_value_is_non_null(value) {
 		write_string(b, type.name)
 	} else {
 		write_string(b, "Maybe<")
