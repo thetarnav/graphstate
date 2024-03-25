@@ -3,8 +3,8 @@ schema {
 }
 
 type Query {
-	foo(key: Int): String
-	bar: [String!]!
+	foo: [String!]!
+	bar(key: Int): String
 	person(id: ID!): Person
 }
 
