@@ -22,7 +22,8 @@ case $1 in
 			echo "graphstate binary does not exist."
 			exit 1
 		fi
-
+		
+		mkdir -p ./build
 		cat ./schema_test.graphql | ./graphstate > ./build/client.js
 		;;
 	*)
