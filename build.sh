@@ -27,6 +27,6 @@ case $1 in
 		cat ./schema_test.graphql | ./graphstate > ./build/client.js
 		;;
 	*)
-		odin build . $FLAGS
+		./build.sh release
 		;;
 esac
