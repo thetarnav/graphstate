@@ -17,7 +17,7 @@ jobs:
 
       - uses: laytan/setup-odin@v2
         with:
-          branch: main
+          branch: master
           release: false
           llvm-version: 17
           build-type: release_native
