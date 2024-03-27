@@ -19,7 +19,7 @@ jobs:
         with:
           branch: master
           release: false
-          llvm-version: 17
+          llvm-version: "17"
           build-type: release
 
       - uses: actions/setup-node@v4
