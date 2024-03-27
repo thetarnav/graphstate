@@ -17,10 +17,8 @@ jobs:
 
       - uses: laytan/setup-odin@v2
         with:
-          branch: master
-          release: false
-          llvm-version: "17"
-          build-type: release
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release: latest
 
       - uses: actions/setup-node@v4
         with:
