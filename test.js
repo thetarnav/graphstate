@@ -1,6 +1,6 @@
 import * as t      from "node:test"
 import * as assert from "node:assert/strict"
-import * as gql from "./build/client.js" // Generated
+import * as gql    from "./build/client.js" // Generated
 
 t.test("query_get_body", () => {
 	const query_foo = gql.query_get_body_foo({})

@@ -348,7 +348,7 @@ write_initial_type :: proc(b: ^strings.Builder, schema: gql.Schema, type: gql.Ty
 		write(b, type.name)
 	case .Scalar, .Unknown:
 		switch type.name {
-		case "String":
+		case "String", "ID":
 			write(b, "\"\"")
 		case "Int", "Float":
 			write(b, "0")
