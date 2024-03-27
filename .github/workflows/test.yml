@@ -20,7 +20,7 @@ jobs:
           branch: master
           release: false
           llvm-version: 17
-          build-type: release_native
+          build-type: release
 
       - uses: actions/setup-node@v4
         with:
