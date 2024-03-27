@@ -252,8 +252,6 @@ write_query_data :: proc(b: ^strings.Builder, schema: gql.Schema, field: gql.Fie
 		write(b, field.name)
 		write(b, "(vars) {\n")
 		write(b, "\treturn '")
-		write(b, operation_type)
-		write(b, "{")
 		write(b, field.name)
 
 		if len(field.args) > 0 {
@@ -272,7 +270,7 @@ write_query_data :: proc(b: ^strings.Builder, schema: gql.Schema, field: gql.Fie
 
 		write_type_fields(b, schema, field.value)
 
-		write(b, "}'\n}\n\n")
+		write(b, "'\n}\n\n")
 	}
 
 	{ // query_data
@@ -295,6 +293,9 @@ write_query_data :: proc(b: ^strings.Builder, schema: gql.Schema, field: gql.Fie
 		write(b, " = /** @type {*} */({\n")
 		write(b, "\tname         : \"")
 		write(b, field.name)
+		write(b, "\",\n")
+		write(b, "\tkind         : \"")
+		write(b, operation_type)
 		write(b, "\",\n")
 		write(b, "\tget_body     : query_get_body_")
 		write(b, field.name)

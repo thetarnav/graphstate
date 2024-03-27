@@ -17,10 +17,18 @@
  */
 
 /**
+ * @enum {(typeof Operation_Kind)[keyof typeof Operation_Kind]} */
+export const Operation_Kind = /** @type {const} */({
+	Query   : "query",
+	Mutation: "mutation",
+})
+
+/**
  * @template TVars
  * @template TValue
  * @typedef  {object               } Query_Data
  * @property {string               } name
+ * @property {Operation_Kind       } kind
  * @property {Query_Get_Body<TVars>} get_body
  * @property {TValue               } initial_value
  * @property {TVars                } _type_vars
@@ -66,6 +74,14 @@ export function request_init_init(request_init, query) {
 	request_init.method  ??= "POST"
 	request_init.headers ??= {"Content-Type": "application/json"}
 	request_init.body      = '{"query":'+JSON.stringify(query)+'}'
+}
+
+
+/**
+ * @param   {string} query
+ * @returns {string} */
+export function query_to_requestinit_body(query) {
+	return '{"query":'+JSON.stringify(query)+'}'
 }
 
 /**
