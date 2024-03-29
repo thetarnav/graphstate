@@ -1,10 +1,5 @@
-# Ignore all extensionless files
-*
-!*.*
-!*/
-
-# Build
-/build
+graphstate
+graphstate.wasm
 
 node_modules
 

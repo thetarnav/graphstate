@@ -1,71 +1,23 @@
 package graphstate
 
-import "core:os"
-import "core:fmt"
-import "core:mem"
 import "core:strings"
-import gql "./graphql_parser"
+import gql "../graphql_parser"
 
 write :: strings.write_string
 
-when ODIN_OS == .Windows {
-	is_terminal :: proc(fd: os.Handle) -> bool {
-		return false
-	}
-} else {
-	foreign import libc "system:c"
+runtime := #load("./runtime.js", string)
 
-	foreign libc {
-		@(link_name = "isatty")
-		_isatty :: proc(fd: os.Handle) -> b32 ---
-	}
-
-	is_terminal :: proc(fd: os.Handle) -> bool {
-		return bool(_isatty(fd))
-	}
-}
-
-runtime := #load("./runtime.js")
-
-main :: proc() {
-	if is_terminal(os.stdin) {
-		fmt.println("\e[0;36mEnter a GraphQL query or schema:\e[0m")
-	}
-
-	buf, alloc_err := make([]byte, mem.Megabyte * 10)
-	if alloc_err != nil {
-		fmt.panicf("error allocating memory: %v", alloc_err)
-	}
-
-	input: string
-	input_len, os_err := os.read(os.stdin, buf[:])
-	if os_err != os.ERROR_NONE {
-		fmt.panicf("error reading input: %d", os_err)
-	}
-
-	input = string(buf[:input_len])
-	buf = buf[input_len:]
-
-	arena: mem.Arena
-	mem.arena_init(&arena, buf)
-	context.allocator = mem.arena_allocator(&arena)
-
+program :: proc(input: string) -> (err: gql.Schema_Error) {
 	schema: gql.Schema
-	alloc_err = gql.schema_init(&schema)
-	if alloc_err != nil {
-		fmt.panicf("error initializing schema: %v", alloc_err)
-	}
-
-	schema_err := gql.schema_parse(&schema, input)
-	if schema_err != nil {
-		fmt.panicf("Error parsing schema: %v", schema_err)
-	}
+	gql.schema_init(&schema) or_return
+	gql.schema_parse(&schema, input) or_return
 
 	// gql.schema_topological_sort(&schema)
 
-	os.write(os.stdout, runtime)
+	out_write(runtime)
 
-	b := strings.builder_make_len_cap(0, 2048)
+	b: strings.Builder
+	strings.builder_init_len_cap(&b, 0, 2048) or_return
 
 	/*
 	Types typedef jsdoc
@@ -74,7 +26,7 @@ main :: proc() {
 	write(&b, "TYPES:\n\n")
 	write(&b, "*/\n")
 
-	types_done := make([]bool, len(schema.types), context.temp_allocator)
+	types_done := make([]bool, len(schema.types)) or_return
 	#unroll for i in 0..<gql.USER_TYPES_START {
 		types_done[i] = true
 	}
@@ -132,8 +84,8 @@ main :: proc() {
 		}
 	}
 
-	str := strings.to_string(b)
-	os.write(os.stdout, transmute([]byte)str)
+	out_write(string(b.buf[:]))
+	return
 }
 
 write_typedef :: proc(b: ^strings.Builder, types_done: []bool, schema: gql.Schema, idx: int) {
@@ -329,7 +281,7 @@ write_initial_value :: proc(b: ^strings.Builder, schema: gql.Schema, value: gql.
 		} else {
 			type := schema.types[value.index]
 			write_initial_type(b, schema, type)
-		}	
+		}
 	} else {
 		write(b, "null")
 	}

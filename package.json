@@ -12,7 +12,8 @@
 	"private": false,
 	"sideEffects": false,
 	"type": "module",
-	"files": [],
+	"files": ["cli.js"],
+	"bin": "./cli.js",
 	"scripts": {
 		"test": "node --test",
 		"typecheck": "tsc --noEmit"
