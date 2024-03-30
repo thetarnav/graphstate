@@ -2,9 +2,14 @@
 graphstate
 graphstate.wasm
 _client.js
+sdk.d.ts
+sdk.d.ts.map
 
 # Node
 node_modules
 
 # Odin
 ols.json
+
+# VSCode
+.vscode/settings.json

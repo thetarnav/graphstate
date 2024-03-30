@@ -1,5 +1,5 @@
 {
-	"name": "graphstate",
+	"name": "@nothing-but/graphstate",
 	"version": "0.0.0",
 	"author": "Damian Tarnawski <gthetarnav@gmail.com>",
 	"description": "A reactive GraphQL client generator.",
@@ -14,15 +14,21 @@
 	"type": "module",
 	"files": [
 		"./sdk.js",
+		"./sdk.d.ts",
+		"./sdk.d.ts.map",
 		"./graphstate.wasm"
 	],
+	"types": "./sdk.d.ts",
 	"module": "./sdk.js",
 	"exports": {
+		"types": "./sdk.d.ts",
 		"import": "./sdk.js"
 	},
 	"scripts": {
+		"prepublishOnly": "npm run build",
 		"test": "node --test",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"build": "node ./build.js"
 	},
 	"devDependencies": {
 		"@types/node": "^20.11.30",
