@@ -7,6 +7,11 @@ write :: strings.write_string
 
 runtime := #load("./runtime.js", string)
 
+Out_Kind :: enum u8 {
+	Output,
+	Error,
+}
+
 program :: proc(input: string) -> (err: gql.Schema_Error) {
 	schema: gql.Schema
 	gql.schema_init(&schema) or_return
@@ -14,7 +19,7 @@ program :: proc(input: string) -> (err: gql.Schema_Error) {
 
 	// gql.schema_topological_sort(&schema)
 
-	out_write(runtime)
+	out_write_string(.Output, runtime)
 
 	b: strings.Builder
 	strings.builder_init_len_cap(&b, 0, 2048) or_return
@@ -84,7 +89,7 @@ program :: proc(input: string) -> (err: gql.Schema_Error) {
 		}
 	}
 
-	out_write(string(b.buf[:]))
+	out_write(.Output, b.buf[:])
 	return
 }
 

@@ -12,8 +12,10 @@
 	"private": false,
 	"sideEffects": false,
 	"type": "module",
-	"files": ["cli.js"],
-	"bin": "./cli.js",
+	"files": [
+		"./sdk.js",
+		"./graphstate.wasm"
+	],
 	"scripts": {
 		"test": "node --test",
 		"typecheck": "tsc --noEmit"
