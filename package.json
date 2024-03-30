@@ -16,6 +16,10 @@
 		"./sdk.js",
 		"./graphstate.wasm"
 	],
+	"module": "./sdk.js",
+	"exports": {
+		"import": "./sdk.js"
+	},
 	"scripts": {
 		"test": "node --test",
 		"typecheck": "tsc --noEmit"

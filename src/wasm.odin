@@ -1,4 +1,4 @@
-//+build freestanding wasm32
+//+build freestanding
 package graphstate
 
 import "core:mem"
@@ -17,6 +17,7 @@ out_write_string :: #force_inline proc(kind: Out_Kind, str: string) {
 	out_write(kind, transmute([]u8)str)
 }
 
+@(private)
 buf_arr: [mem.Megabyte * 20]u8
 
 @(export)

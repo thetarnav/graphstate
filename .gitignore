@@ -1,6 +1,10 @@
+# Output
 graphstate
 graphstate.wasm
+_client.js
 
+# Node
 node_modules
 
+# Odin
 ols.json

@@ -22,11 +22,16 @@ when ODIN_OS == .Windows {
 	}
 }
 
-write_output :: proc(output: []u8) {
-	_, os_err := os.write(os.stdout, output)
+out_write :: proc(kind: Out_Kind, output: []u8) {
+	fd := kind == Out_Kind.Output ? os.stdout : os.stderr
+	_, os_err := os.write(fd, output)
 	if os_err != os.ERROR_NONE {
 		fmt.panicf("error writing output: %d", os_err)
 	}
+}
+
+out_write_string :: proc(kind: Out_Kind, output: string) {
+	out_write(kind, transmute([]u8)(output))
 }
 
 main :: proc() {

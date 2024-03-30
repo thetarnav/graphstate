@@ -1,5 +1,4 @@
-FLAGS="
-	-no-thread-local \
+FLAGS_VET="
 	-vet-unused \
 	-vet-shadowing \
 	-vet-style \
@@ -7,6 +6,7 @@ FLAGS="
 "
 
 FLAGS_RELEASE="
+	-no-thread-local
 	-o:aggressive \
 	-no-bounds-check \
 	-disable-assert \
@@ -14,16 +14,18 @@ FLAGS_RELEASE="
 "
 
 case $1 in
-	"release")
-		odin build src $FLAGS $FLAGS_RELEASE -out:graphstate -microarch:native
-		;;
-	"debug")
-		odin build src $FLAGS -debug -out:graphstate
+	"cli")
+		odin build src $FLAGS_VET -out:graphstate
 		;;
 	"wasm")
-		# odin build src $FLAGS $FLAGS_RELEASE -out:graphstate.wasm -target:freestanding_wasm32
-		odin build src -out:graphstate.wasm -target:freestanding_wasm32
-
+		odin build src $FLAGS_VET -out:graphstate.wasm -target:freestanding_wasm32
+		;;
+	"release")
+		odin build src $FLAGS_VET $FLAGS_RELEASE -out:graphstate -microarch:native
+		odin build src $FLAGS_VET $FLAGS_RELEASE -out:graphstate.wasm -target:freestanding_wasm32
+		;;
+	"debug")
+		odin build src -out:graphstate -debug
 		;;
 	"client")
 		if [ ! -f "./graphstate" ]; then
@@ -34,6 +36,6 @@ case $1 in
 		cat ./schema_test.graphql | ./graphstate > ./_client.js
 		;;
 	*)
-		odin build src $FLAGS -out:graphstate
+		./build.sh release
 		;;
 esac
