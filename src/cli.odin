@@ -4,6 +4,7 @@ package graphstate
 import "core:os"
 import "core:fmt"
 import "core:mem"
+import gql "../graphql_parser"
 	
 when ODIN_OS == .Windows {
 	is_terminal :: proc(fd: os.Handle) -> bool {
@@ -34,28 +35,31 @@ out_write_string :: proc(kind: Out_Kind, output: string) {
 	out_write(kind, transmute([]u8)(output))
 }
 
+@(private)
+buf_arr: [mem.Megabyte * 20]u8
+
 main :: proc() {
 	if is_terminal(os.stdin) {
 		fmt.println("\e[0;36mEnter a GraphQL query or schema:\e[0m")
 	}
 
-	buf, alloc_err := make([]byte, mem.Megabyte * 10)
-	if alloc_err != nil {
-		fmt.panicf("error allocating memory: %v", alloc_err)
-	}
-
 	input: string
-	input_len, os_err := os.read(os.stdin, buf[:])
+	input_len, os_err := os.read(os.stdin, buf_arr[:])
 	if os_err != os.ERROR_NONE {
-		fmt.panicf("error reading input: %d", os_err)
+		fmt.panicf("Error reading input: %d", os_err)
 	}
 
-	input = string(buf[:input_len])
-	buf = buf[input_len:]
+	input = string(buf_arr[:input_len])
+	buf := buf_arr[input_len:]
 
 	arena: mem.Arena
 	mem.arena_init(&arena, buf)
 	context.allocator = mem.arena_allocator(&arena)
 
-	program(input)
+	err := program(input)
+
+	if err != nil {
+		err_str := gql.schema_error_to_string(input, err) or_else "Error converting error to string"
+		out_write_string(.Error, err_str)
+	}
 }
