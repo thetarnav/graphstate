@@ -10,6 +10,7 @@
 	},
 	"homepage": "https://github.com/thetarnav/graphstate#readme",
 	"private": false,
+	"publishConfig": {"access": "public"},
 	"sideEffects": false,
 	"type": "module",
 	"files": [
