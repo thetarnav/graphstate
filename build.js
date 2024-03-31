@@ -1,8 +1,8 @@
-import fs            from "fs"
-import path          from "path"
-import child_process from "child_process"
-import ts            from "typescript"
-import * as odin     from "./odin_build.js"
+import fs        from "fs"
+import path      from "path"
+import ts        from "typescript"
+import * as odin from "./odin_build.js"
+import * as sdk  from "./sdk.js"
 
 const filename     = new URL(import.meta.url).pathname
 const dirname      = path.dirname(filename)
@@ -40,28 +40,32 @@ const release_options = {
 
 const buildType = process.argv[2]
 
+let code = 0
+
 switch (buildType) {
-case "cli":
-	odin.build("src", {
+case "cli": {
+	code = await odin.build("src", {
 		...vet_options,
 		out: "graphstate",
 	})
 	break
-case "wasm":
-	odin.build("src", {
+}
+case "wasm": {
+	code = await odin.build("src", {
 		...vet_options,
 		out: "graphstate.wasm",
 		target: "freestanding_wasm32"
 	})
 	break
+}
 default:
-case "release":
-	// odin.build("src", {
-	// 	...release_options,
-	// 	out: "graphstate",
-	// 	microarch: "native"
-	// })
-	odin.build("src", {
+case "release": {
+	const binary_build = odin.build("src", {
+		...release_options,
+		out: "graphstate",
+		microarch: "native"
+	})
+	const wasm_build   = odin.build("src", {
 		...release_options,
 		out: "graphstate.wasm",
 		target: "freestanding_wasm32"
@@ -76,23 +80,30 @@ case "release":
 	const ts_program = ts.createProgram([sdk_js_path], ts_options)
 	ts_program.emit()
 
+	const [binary_code, wasm_code] = await Promise.all([binary_build, wasm_build])
+	code = binary_code || wasm_code
+
 	break
-case "debug":
-	odin.build("src", {
+}
+case "debug": {
+	code = await odin.build("src", {
 		...vet_options,
 		out: "graphstate",
 		debug: true
 	})
 	break
+}
 case "client": {
-	if (!fs.existsSync("graphstate")) {
-		console.log("graphstate binary does not exist.")
+	const schema_test = fs.readFileSync("schema_test.graphql", "utf8")
+	const queries = sdk.cli_generate_queries(schema_test)
+	if (queries instanceof Error) {
+		console.log(queries.message)
 		process.exit(1)
 	}
-	
-	const schema_test = fs.readFileSync("schema_test.graphql", "utf8")
-	const client_js = child_process.execSync("graphstate", {input: schema_test})
-	fs.writeFileSync('_client.js', client_js)
+
+	fs.writeFileSync('_client.js', queries)
 	break
 }
 }
+
+process.exit(code)
