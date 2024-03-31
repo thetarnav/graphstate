@@ -1,6 +1,6 @@
 {
 	"name": "@nothing-but/graphstate",
-	"version": "0.0.0",
+	"version": "0.0.1",
 	"author": "Damian Tarnawski <gthetarnav@gmail.com>",
 	"description": "A reactive GraphQL client generator.",
 	"license": "MIT",
@@ -10,7 +10,9 @@
 	},
 	"homepage": "https://github.com/thetarnav/graphstate#readme",
 	"private": false,
-	"publishConfig": {"access": "public"},
+	"publishConfig": {
+		"access": "public"
+	},
 	"sideEffects": false,
 	"type": "module",
 	"files": [
