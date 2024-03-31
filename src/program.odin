@@ -7,22 +7,17 @@ write :: strings.write_string
 
 runtime := #load("./runtime.js", string)
 
-Out_Kind :: enum u8 {
-	Output,
-	Error,
-}
-
-program :: proc(input: string) -> (err: gql.Schema_Error) {
+@(require_results)
+program :: proc(input: string) -> (output: []u8, err: gql.Schema_Error) {
 	schema: gql.Schema
 	gql.schema_init(&schema) or_return
 	gql.schema_parse(&schema, input) or_return
 
 	// gql.schema_topological_sort(&schema)
-
-	out_write_string(.Output, runtime)
-
+	
 	b: strings.Builder
-	strings.builder_init_len_cap(&b, 0, 2048) or_return
+	strings.builder_init_len_cap(&b, 0, len(runtime) + len(input) * 20) or_return
+	write(&b, runtime)
 
 	/*
 	Types typedef jsdoc
@@ -89,8 +84,7 @@ program :: proc(input: string) -> (err: gql.Schema_Error) {
 		}
 	}
 
-	out_write(.Output, b.buf[:])
-	return
+	return b.buf[:], err
 }
 
 write_typedef :: proc(b: ^strings.Builder, types_done: []bool, schema: gql.Schema, idx: int) {

@@ -23,18 +23,6 @@ when ODIN_OS == .Windows {
 	}
 }
 
-out_write :: proc(kind: Out_Kind, output: []u8) {
-	fd := kind == Out_Kind.Output ? os.stdout : os.stderr
-	_, os_err := os.write(fd, output)
-	if os_err != os.ERROR_NONE {
-		fmt.panicf("error writing output: %d", os_err)
-	}
-}
-
-out_write_string :: proc(kind: Out_Kind, output: string) {
-	out_write(kind, transmute([]u8)(output))
-}
-
 @(private)
 buf_arr: [mem.Megabyte * 20]u8
 
@@ -56,10 +44,12 @@ main :: proc() {
 	mem.arena_init(&arena, buf)
 	context.allocator = mem.arena_allocator(&arena)
 
-	err := program(input)
+	output, err := program(input)
 
 	if err != nil {
 		err_str := gql.schema_error_to_string(input, err) or_else "Error converting error to string"
-		out_write_string(.Error, err_str)
+		os.write(os.stderr, transmute([]u8)err_str)
+	} else {
+		os.write(os.stdout, output)
 	}
 }

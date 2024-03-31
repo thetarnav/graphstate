@@ -17,6 +17,11 @@ out_write_string :: #force_inline proc(kind: Out_Kind, str: string) {
 	out_write(kind, transmute([]u8)str)
 }
 
+Out_Kind :: enum u8 {
+	Output,
+	Error,
+}
+
 @(private)
 buf_arr: [mem.Megabyte * 20]u8
 
@@ -33,10 +38,12 @@ start :: proc "contextless" () {
 	context.allocator = mem.arena_allocator(&arena)
 	context.temp_allocator = context.allocator
 
-	err := program(input)
+	output, err := program(input)
 
 	if err != nil {
 		err_str := gql.schema_error_to_string(input, err) or_else "Error converting error to string"
 		out_write_string(.Error, err_str)
+	} else {
+		out_write(.Output, output)
 	}
 }

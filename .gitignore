@@ -1,9 +1,10 @@
 # Output
 graphstate
 graphstate.wasm
-_client.js
 sdk.d.ts
 sdk.d.ts.map
+_*
+*.bin
 
 # Node
 node_modules

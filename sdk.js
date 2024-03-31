@@ -52,10 +52,21 @@ export const Out_Kind = /** @type {const} */({
 })
 
 /**
- * @typedef  {object                  } Wasm_Props
- * @property {() => string            } get_input
- * @property {(error : string) => void} on_error
- * @property {(output: string) => void} on_output
+ * @typedef  {object   } Wasm_Props
+ * @property {Get_Input} get_input
+ * @property {On_Output} on_output
+ * @property {On_Error } on_error
+ * 
+ * @callback Get_Input
+ * @returns {string}
+ * 
+ * @callback On_Output
+ * @param {string} output
+ * @returns {void}
+ * 
+ * @callback On_Error
+ * @param {string} error
+ * @returns {void}
  */
 
 /**
@@ -109,8 +120,13 @@ export async function wasm_init(wasm_source, props) {
 	}
 }
 
+/** @returns {Promise<Buffer>} */
+export function wasm_read_source() {
+	return fs.promises.readFile(wasm_path)
+}
+
 /**
- * Generates gql queries with a wasm module.
+ * One-Time generates gql queries with a wasm module.
  * @param   {string                 } schema 
  * @returns {Promise<string | Error>} queries file */
 export async function wasm_generate_queries(schema) {
@@ -118,10 +134,10 @@ export async function wasm_generate_queries(schema) {
 	/** @type {Error | undefined} */
 	let error
 
-	const source  = await fs.promises.readFile(wasm_path)
+	const source  = await wasm_read_source()
 	const exports = await wasm_init_unsafe(source, {
 		get_input: () => schema,
-		on_output: (str) => output += str,
+		on_output: (str) => output = str,
 		on_error : (str) => error = new Error(str),
 	})
 
