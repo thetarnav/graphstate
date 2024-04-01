@@ -23,7 +23,7 @@ Out_Kind :: enum u8 {
 }
 
 @(private)
-buf_arr: [mem.Megabyte * 20]u8
+buf_arr: [mem.Megabyte * 10]u8
 
 @(export)
 start :: proc "contextless" () {
